@@ -333,7 +333,17 @@
         import { getFirestore, collection, doc, setDoc, updateDoc, onSnapshot, serverTimestamp, addDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'rokter-tan-v4';
-        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : { apiKey: "dummy", authDomain: "dummy", projectId: "dummy" };
+        
+        // আপনার নতুন ফায়ারবেস কনফিগারেশনটি এখানে বসানো হয়েছে
+        const firebaseConfig = {
+            apiKey: "AIzaSyDMHgHancA7i6lg6iNS9aF1-ezVCCauIvA",
+            authDomain: "rokter-tan.firebaseapp.com",
+            projectId: "rokter-tan",
+            storageBucket: "rokter-tan.firebasestorage.app",
+            messagingSenderId: "516974795629",
+            appId: "1:516974795629:web:8e1abdfa2d7d0f83201864",
+            measurementId: "G-73NB064BD8"
+        };
         
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
