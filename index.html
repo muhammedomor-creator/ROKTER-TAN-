@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>রক্তের টান - Ultimate Blood Donation Ecosystem</title>
+    <title>রক্তের টান - Blood Donation Ecosystem</title>
     
     <!-- Fonts: Hind Siliguri -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -125,7 +125,7 @@
                 </div>
                 <div>
                     <h1 class="text-xl font-bold text-gray-900 dark:text-white leading-tight">রক্তের টান</h1>
-                    <p class="text-xs text-primary font-medium">জীবন বাঁচানোর প্ল্যাটফর্ম</p>
+                    <p class="text-xs text-primary font-medium></p>
                 </div>
             </div>
             <button id="notification-btn" class="relative p-2 text-gray-500 dark:text-gray-400 hover:text-primary transition-colors">
@@ -477,7 +477,8 @@
     <!-- Scripts -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        // Fixed: Added signInWithCustomToken to import statement
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, collection, doc, setDoc, getDoc, onSnapshot, query, addDoc, updateDoc, serverTimestamp, orderBy } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         // ================= APP CONFIG & STATE =================
@@ -663,7 +664,8 @@
 
             distSel.addEventListener('change', (e) => {
                 upaSel.innerHTML = '<option value="">উপজেলা/থানা</option>';
-                if (e.target.value && divSel.value) {
+                // Fixed: Added safety checks for undefined variables in GeoData array mapping
+                if (e.target.value && divSel.value && geoData[divSel.value] && geoData[divSel.value][e.target.value]) {
                     upaSel.disabled = false;
                     geoData[divSel.value][e.target.value].sort().forEach(upa => {
                         upaSel.add(new Option(upa, upa));
@@ -741,8 +743,8 @@
                     data.id = docSnap.id;
                     allRequests.push(data);
                     
-                    // Notification Logic (only if created after initial load and matches my location/blood)
-                    if (data.timestamp && data.timestamp.toMillis() > initialLoadTime) {
+                    // Fixed: Safely verify if timestamp exists and isn't locally null (due to pending write)
+                    if (data.timestamp && typeof data.timestamp.toMillis === 'function' && data.timestamp.toMillis() > initialLoadTime) {
                         if (userProfile && data.bloodGroup === userProfile.bloodGroup) {
                              if(data.division === userProfile.division) {
                                  newRequestsExist = true;
@@ -753,10 +755,10 @@
                     }
                 });
 
-                // Sort by date desc (in-memory)
+                // Fixed: Sort by date desc safely (handling local latency timestamps)
                 allRequests.sort((a, b) => {
-                    const tA = a.timestamp ? a.timestamp.toMillis() : 0;
-                    const tB = b.timestamp ? b.timestamp.toMillis() : 0;
+                    const tA = (a.timestamp && typeof a.timestamp.toMillis === 'function') ? a.timestamp.toMillis() : Date.now();
+                    const tB = (b.timestamp && typeof b.timestamp.toMillis === 'function') ? b.timestamp.toMillis() : Date.now();
                     return tB - tA;
                 });
 
@@ -950,7 +952,8 @@
 
             activeRequests.forEach(r => {
                 const isMine = r.createdBy === currentUser.uid;
-                const dateObj = r.timestamp ? new Date(r.timestamp.toMillis()) : new Date();
+                // Fixed: Safely check for local null timestamps (pending server confirmation)
+                const dateObj = (r.timestamp && typeof r.timestamp.toMillis === 'function') ? new Date(r.timestamp.toMillis()) : new Date();
                 const timeStr = dateObj.toLocaleTimeString('bn-BD', {hour: '2-digit', minute:'2-digit'});
                 
                 const div = document.createElement('div');
@@ -1023,7 +1026,8 @@
         };
 
         window.earnPoints = async (amount, reason) => {
-            if(!currentUser) return;
+            // Fixed: Added safety check for userProfile undefined states
+            if(!currentUser || !userProfile) return; 
             try {
                 const currentPoints = userProfile.points || 0;
                 await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'users', currentUser.uid), {
@@ -1086,6 +1090,7 @@
             filtered.forEach(b => {
                 const div = document.createElement('div');
                 div.className = "bg-white dark:bg-gray-800 p-4 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 flex justify-between items-center";
+                // Fixed: Added encodeURIComponent to perfectly handle spaces inside URL literals
                 div.innerHTML = `
                     <div>
                         <h4 class="font-bold text-sm text-gray-900 dark:text-white">${b.name}</h4>
@@ -1094,7 +1099,7 @@
                     </div>
                     <div class="flex flex-col gap-2">
                          <a href="tel:${b.phone}" class="w-8 h-8 bg-green-100 text-green-600 rounded-full flex items-center justify-center"><i class="fa-solid fa-phone"></i></a>
-                         <a href="https://maps.google.com/?q=${b.name} ${b.map}" target="_blank" class="w-8 h-8 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center"><i class="fa-solid fa-location-arrow"></i></a>
+                         <a href="https://maps.google.com/?q=${encodeURIComponent(b.name + ' ' + b.map)}" target="_blank" class="w-8 h-8 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center"><i class="fa-solid fa-location-arrow"></i></a>
                     </div>
                 `;
                 list.appendChild(div);
@@ -1167,4 +1172,5 @@
     </script>
 </body>
 </html>
+
 
